@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sprite Optimizer</title>
+    <!-- Discord fanciness -->
+    <meta content="Sprite Optimizer" property="og:title" />
+    <meta content='Crop images (aligned) without breaking your entity' property="og:description" />
+    <meta content="https://psndth.github.io/SpriteOptimizer/" property="og:url" />
+    <!--Fonts -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Poiret+One|Raleway:400,300,600,700">
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Sharp:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <!-- Styles and script-->
+    <link rel="stylesheet" href="main.css">
+    <script type="module">
+        import {showDirectoryPicker} from 'https://cdn.jsdelivr.net/npm/file-system-access/+esm'
+        import 'https://cdn.jsdelivr.net/npm/file-system-access/lib/polyfillDataTransferItem.js'
+        const can_modify_fs = ("showDirectoryPicker"  in window);
+        if (!can_modify_fs) {
+            window.showDirectoryPicker = showDirectoryPicker;
+        }
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.0/FileSaver.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jimp/browser/lib/jimp.min.js"></script>
+    <script src="https://unpkg.com/gl-matrix@3.4.3/gl-matrix-min.js"></script>
+    <script src="script.js"></script>
+</head>
+
+<body>
+    <h1>Sprite Optimizer</h1>
+    <div class="desc">
+        <h2>Instructions</h2>
+        <p>
+            Tool for cropping out the empty space on images so fraytools export is faster.
+            <br>Also modifies the uses of the image so that entity files are unchanged
+            <br><br><i>After selecting, this modifies your project directory!! Be sure to back it up first!</i>
+        </p>
+    </div>
+    <div class="options">
+        <!-- <div> -->
+            Crop Style:
+            <label>
+                <input type="radio" value=none name="alignType" checked />
+                Aggressive (no blank space)
+            </label>
+            <label>
+                <input type="radio" value=aligned name="alignType" />
+                Aligned (per folder, some blank space)
+            </label>
+        <!-- </div> -->
+    </div>
+
+    <button id="start_process">Put Fraytools Folder Here</button>
+    <p class="desc" id="result"></p>
+</body>
+
+</html>
