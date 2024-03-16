@@ -186,7 +186,7 @@ button:disabled {
 	visibility: visible;
 }
 
-.success_resp span {
+.success_resp {
 	color: #00c853;
 }
 

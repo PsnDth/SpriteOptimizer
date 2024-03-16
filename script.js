@@ -83,14 +83,16 @@ class GuidInfo {
     updateSymbol(symbol) {
         if (this.crop_bounds == null) return;
         const crop_start = Matrix.getVec(this.crop_bounds[0], this.crop_bounds[1]);
-        let corner = Matrix.getVec(symbol["x"], symbol["y"])
-        let pivot = Matrix.getVec(symbol["pivotX"], symbol["pivotY"])
-        const rotation = symbol["rotation"]
+        let corner = Matrix.getVec(symbol["x"], symbol["y"]);
+        let pivot = Matrix.getVec(symbol["pivotX"], symbol["pivotY"]);
+        const og_pivot = glMatrix.vec2.clone(pivot);
+        const rotation = symbol["rotation"];
         
         const clean_scale_x = symbol["scaleX"] == 0 ? 1 : symbol["scaleX"];
         const clean_scale_y = symbol["scaleY"] == 0 ? 1 : symbol["scaleY"];
         const scale = Matrix.getVec(clean_scale_x, clean_scale_y);
-        const inv_scale = Matrix.getVec(1/clean_scale_x, 1/clean_scale_y);
+        const inv_scale = glMatrix.vec2.create();
+        glMatrix.vec2.inverse(inv_scale, scale);
         // Setup transformation for symbol
         
         // Update pivot to be global instead of relative
@@ -111,8 +113,13 @@ class GuidInfo {
 
         symbol["x"] = corner[0];
         symbol["y"] = corner[1];
-        symbol["pivotX"] = pivot[0];
-        symbol["pivotY"] = pivot[1];
+        // pivot was at 0, 0  then scale tweens will move the image 
+        // while previously it just scaled it - need to think more about this
+        // if the above is true, then need to account for this if there's rotation tweens combined with scale tweens
+        if (!(symbol["pivotX"] == 0 && symbol["pivotY"] == 0)) {
+            symbol["pivotX"] = pivot[0];
+            symbol["pivotY"] = pivot[1];
+        }
     }
 
     async getImage() {
