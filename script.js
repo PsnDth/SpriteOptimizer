@@ -82,7 +82,6 @@ class GuidInfo {
 
     updateSymbol(symbol) {
         if (this.crop_bounds == null) return;
-        console.log(`prev_symbol = ${symbol}`)
         const crop_start = Matrix.getVec(this.crop_bounds[0], this.crop_bounds[1]);
         let corner = Matrix.getVec(symbol["x"], symbol["y"])
         let pivot = Matrix.getVec(symbol["pivotX"], symbol["pivotY"])
@@ -96,37 +95,26 @@ class GuidInfo {
         
         // Update pivot to be global instead of relative
         let pivot_mat = new Matrix();
-        pivot_mat.translate(corner);
         pivot_mat.rotate(rotation);
         pivot_mat.scale(scale);
         let global_pivot = pivot_mat.apply(pivot);
-        
-        // Move corner back to original position
-        let revert_mat = new Matrix();
-        revert_mat.rotate(-rotation, global_pivot);
-        revert_mat.scale(inv_scale, global_pivot);
-        corner = revert_mat.apply(corner);
-        
+        glMatrix.vec2.add(global_pivot, global_pivot, corner);
+
         // Update original pivot to account for new scale 
         glMatrix.vec2.subtract(pivot, pivot, crop_start);
-        glMatrix.vec2.add(corner, corner, crop_start);
-        
-        // Determine updated global pivot
-        // Note: since corner is reverted, no need to account for scale/rotation
-        glMatrix.vec2.add(global_pivot, corner, pivot);
         
         // Apply forward transform but using new pivot
         let restore_mat = new Matrix();
-        restore_mat.rotate(rotation, global_pivot);
-        restore_mat.scale(scale, global_pivot);
-        corner = restore_mat.apply(corner);
-        
+        restore_mat.rotate(rotation);
+        restore_mat.scale(scale);
+        glMatrix.vec2.subtract(corner, global_pivot, restore_mat.apply(pivot));
+
         symbol["x"] = corner[0];
         symbol["y"] = corner[1];
         symbol["pivotX"] = pivot[0];
         symbol["pivotY"] = pivot[1];
-        console.log(`new_symbol = ${symbol}`)
     }
+
     async getImage() {
         const img_reader = new FileReader(); 
         const img_file = await this.handle.getFile();
@@ -139,7 +127,6 @@ class GuidInfo {
     async updateImage(new_contents) {
         const img_file = await this.handle.createWritable();
         await img_file.write(new_contents);
-        console.log("Saving cropped image");
         await img_file.close();
     }
     async loadMaxCrop() {
@@ -150,7 +137,6 @@ class GuidInfo {
         let min_y = img.bitmap.height;
         let max_y = 0;
         img.scan(0, 0, img.bitmap.width, img.bitmap.height, (x, y, i) => {
-            // console.log(`pos = ${[x, y]}`);
             if (pixels[i+3] > 0) {
                 max_x = Math.max(max_x, x+1);
                 max_y = Math.max(max_y, y+1);
@@ -212,14 +198,12 @@ class ImageCropper {
 
     async loadImgGuids(dirHandle) {
         await applyForFolder(dirHandle, async (fhandle, parentDir) => {
-            console.log(`loading file=${fhandle.name}`);
             if (fhandle.name.endsWith(".png.meta")) {
                 const meta_file = await fhandle.getFile();
                 const guid = JSON.parse(await meta_file.text())["guid"];
                 const png_name = meta_file.name.slice(0, -5);
                 if (this.name_info.has(png_name)) {
                     this.guid_info.set(guid, new GuidInfo(guid, this.name_info.get(png_name), parentDir));
-                    console.log(`Added for ${guid} ::  ${this.guid_info.get(guid)}`)
                     this.name_info.delete(png_name);
                 } else {
                     this.name_info.set(png_name, guid);
@@ -228,10 +212,8 @@ class ImageCropper {
             }
             if (fhandle.name.endsWith(".png")) {
                 const png_name = fhandle.name;
-                console.log(`marked as png! for ${png_name} exists: ${this.name_info.has(png_name)}`);
                 if (this.name_info.has(png_name)) {
                     this.guid_info.set(guid, new GuidInfo(this.name_info.get(png_name), fhandle, parentDir));
-                    console.log(`Added for ${guid} :: ${this.guid_info.get(guid)}`)
                     this.name_info.delete(png_name);
                 } else {
                     this.name_info.set(png_name, fhandle);
@@ -338,7 +320,6 @@ async function testWritableFraytoolsFolder(dirHandle) {
     for await (const entry of dirHandle.values()) {
         if (entry.name.endsWith(".fraytools")) {
             const testWriter = await entry.createWritable();
-            console.log("can write fraytools file");
             return dirHandle;
         }
     }
