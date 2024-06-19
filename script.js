@@ -6,15 +6,16 @@ function toRadians (angle) {
 return angle * (Math.PI / 180);
 }
 
-async function applyForFolder(dirHandle, func) {
+async function applyForFolder(dirHandle, func, path="") {
+    path = `${path}/${dirHandle.name}`;
     allRet = [];
     for await (const entry of dirHandle.values()) {
         if (entry.kind == 'file') {
-            allRet.push(await func(entry, dirHandle));
+            allRet.push(await func(entry, dirHandle, path));
         }
         else if (entry.kind == 'directory') {
             // recursion should be optional and have a max depth
-            allRet = allRet.concat(await applyForFolder(entry, func));
+            allRet = allRet.concat(await applyForFolder(entry, func, path));
         }
     }
     return allRet;
@@ -123,7 +124,7 @@ class GuidInfo {
     }
 
     async getImage() {
-        const img_reader = new FileReader(); 
+        const img_reader = new FileReader();
         const img_file = await this.handle.getFile();
         return new Promise((resolve, reject) => {
             img_reader.onload = (e) => resolve(e.target.result);
@@ -204,13 +205,14 @@ class ImageCropper {
     }
 
     async loadImgGuids(dirHandle) {
-        await applyForFolder(dirHandle, async (fhandle, parentDir) => {
+        await applyForFolder(dirHandle, async (fhandle, parentDir, path) => {
             if (fhandle.name.endsWith(".png.meta")) {
                 const meta_file = await fhandle.getFile();
                 const guid = JSON.parse(await meta_file.text())["guid"];
-                const png_name = meta_file.name.slice(0, -5);
+                const png_name = `${path}/${meta_file.name.slice(0, -5)}`;
                 if (this.name_info.has(png_name)) {
-                    this.guid_info.set(guid, new GuidInfo(guid, this.name_info.get(png_name), parentDir));
+                    let fhandle = this.name_info.get(png_name);
+                    this.guid_info.set(guid, new GuidInfo(guid, fhandle, parentDir));
                     this.name_info.delete(png_name);
                 } else {
                     this.name_info.set(png_name, guid);
@@ -218,9 +220,10 @@ class ImageCropper {
                 }
             }
             if (fhandle.name.endsWith(".png")) {
-                const png_name = fhandle.name;
+                const png_name = `${path}/${fhandle.name}`;
                 if (this.name_info.has(png_name)) {
-                    this.guid_info.set(guid, new GuidInfo(this.name_info.get(png_name), fhandle, parentDir));
+                    let guid = this.name_info.get(png_name);
+                    this.guid_info.set(guid, new GuidInfo(guid, fhandle, parentDir));
                     this.name_info.delete(png_name);
                 } else {
                     this.name_info.set(png_name, fhandle);
