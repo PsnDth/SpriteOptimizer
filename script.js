@@ -199,9 +199,14 @@ class ImageCropper {
     static ALIGN_TYPE_ALIGNED = "aligned"
     static ALIGN_TYPE_NONE = "none"
     
+    static SEARCH_TYPE_NAME = "searchType"
+    static SEARCH_TYPE_ALL = "all"
+    static SEARCH_TYPE_ENTITY = "entity"
+    
     constructor() {
         this.name_info = new Map(); // temporarily maps filename to handle or guid depending on the order things are encountered
         this.guid_info = new Map(); // maps guid to handle, crop amount
+        this.guid_filter = null; // list of guids that should be cropped
     }
 
     async loadImgGuids(dirHandle) {
@@ -212,7 +217,9 @@ class ImageCropper {
                 const png_name = `${path}/${meta_file.name.slice(0, -5)}`;
                 if (this.name_info.has(png_name)) {
                     let fhandle = this.name_info.get(png_name);
-                    this.guid_info.set(guid, new GuidInfo(guid, fhandle, parentDir));
+                    if (this.guid_filter === null || this.guid_filter.has(guid)){
+                        this.guid_info.set(guid, new GuidInfo(guid, fhandle, parentDir));
+                    }
                     this.name_info.delete(png_name);
                 } else {
                     this.name_info.set(png_name, guid);
@@ -223,7 +230,9 @@ class ImageCropper {
                 const png_name = `${path}/${fhandle.name}`;
                 if (this.name_info.has(png_name)) {
                     let guid = this.name_info.get(png_name);
-                    this.guid_info.set(guid, new GuidInfo(guid, fhandle, parentDir));
+                    if (this.guid_filter === null || this.guid_filter.has(guid)){
+                        this.guid_info.set(guid, new GuidInfo(guid, fhandle, parentDir));
+                    }
                     this.name_info.delete(png_name);
                 } else {
                     this.name_info.set(png_name, fhandle);
@@ -294,7 +303,30 @@ class ImageCropper {
         });
     }
 
+    async loadExpectedGuids(dirHandle) {
+        let search_type = document.querySelector(`input[name="${ImageCropper.SEARCH_TYPE_NAME}"]:checked`).value;
+        if (search_type == ImageCropper.SEARCH_TYPE_ALL) {
+            this.guid_filter = null;
+            return;
+        }
+        this.guid_filter = new Map();
+        await applyForFolder(dirHandle, async (fhandle) => {
+            if (fhandle.name.endsWith(".entity")) {
+                let entity_file = await fhandle.getFile();
+                let entity_json = JSON.parse(await entity_file.text());
+                for (let symbol of entity_json["symbols"]) {
+                    const guid = symbol["imageAsset"];
+                    if (guid) {
+                        this.guid_filter.set(guid, true);
+                    }
+                }
+            }
+        }); 
+    }
+
     async load(dirHandle) {
+        console.log("loading guids to crop");
+        await this.loadExpectedGuids(dirHandle);
         console.log("loading guids");
         await this.loadImgGuids(dirHandle);
         console.log(`loaded guids=${this.guid_info.size}`);

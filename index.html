@@ -40,7 +40,7 @@
         </p>
     </div>
     <div class="options">
-        <!-- <div> -->
+        <div>
             Crop Style:
             <label>
                 <input type="radio" value=none name="alignType" checked />
@@ -50,7 +50,18 @@
                 <input type="radio" value=aligned name="alignType" />
                 Aligned (per folder, some blank space)
             </label>
-        <!-- </div> -->
+        </div>
+        <div>
+            Search Style:
+            <label>
+                <input type="radio" value=all name="searchType" checked />
+                Everything
+            </label>
+            <label>
+                <input type="radio" value=entity name="searchType" />
+                Entity only (unused files are ignored)
+            </label>
+        </div>
     </div>
 
     <button id="start_process">Put Fraytools Folder Here</button>
